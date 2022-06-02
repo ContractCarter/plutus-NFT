@@ -21,5 +21,5 @@ parseUTxO :: String -> TxOutRef
 parseUTxO s =
   let
     (x, y) = span (/= '#') s
-  in
+  in 
     TxOutRef (TxId $ getLedgerBytes $ fromString x) $ read $ tail y
