@@ -4,7 +4,7 @@ import Ledger
 import Ledger.Bytes                        (getLedgerBytes)
 import System.Environment                  (getArgs)
 
-import Cardano.Plutus.Nft
+import Cardano.Plutus.Nft 
 
 main :: IO ()
 main = do
