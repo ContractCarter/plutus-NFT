@@ -11,3 +11,8 @@ contract wsea
 endpoints
 
 --| Tokenize CarterToken allow anyone swap for its value
+data CarterToken = CarterToken 
+{ tsSeller :: !PubKeyHash
+, ctToken :: !AssetClass
+, ctNFT   :: !AssetClass
+} deriving (Show, Generic, FromJSON, ToJSON, Prelude.Eq, Prelude.Ord)
