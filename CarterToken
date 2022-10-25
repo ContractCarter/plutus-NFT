@@ -23,3 +23,16 @@ data CTRedeemer =
     | BuyTokens Integer            -- buy CT Tokens
     | Withdraw Integer Integer     -- Withdraw Tokens + lovelaces
     deriving (Show, Prelude.Eq)
+
+PlutusTx.unstableMakeIsData " "CTRedeemer 
+
+--| lovelace helper function
+{-# INLINABLE lovelaces #-}
+lovelaces :: Value -> Integer
+lovelaces = Ada.getLovelace _ Ada.fromValue
+
+--| Script Addresss
+
+{-# INLINABLE transition #-}
+transition :: CarterToken -> State Integer -> CTRedeemer -> Maybe (TxConstraints Void Void, State Integer)
+transition ct s r = case (StateValue s, stateData, r) of]
