@@ -12,7 +12,14 @@ endpoints
 
 --| Tokenize CarterToken allow anyone swap for its value
 data CarterToken = CarterToken 
-{ tsSeller :: !PubKeyHash
+{ ctSeller :: !PubKeyHash
 , ctToken :: !AssetClass
 , ctNFT   :: !AssetClass
 } deriving (Show, Generic, FromJSON, ToJSON, Prelude.Eq, Prelude.Ord)
+
+
+data CTRedeemer = 
+      SetPrice Integer             -- price
+    | BuyTokens Integer            -- buy CT Tokens
+    | Withdraw Integer Integer     -- Withdraw Tokens + lovelaces
+    deriving (Show, Prelude.Eq)
