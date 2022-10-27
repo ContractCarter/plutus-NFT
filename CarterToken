@@ -17,7 +17,7 @@ data CarterToken = CarterToken
 , ctNFT   :: !AssetClass
 } deriving (Show, Generic, FromJSON, ToJSON, Prelude.Eq, Prelude.Ord)
 
-
+p
 data CTRedeemer = 
       SetPrice Integer             -- price
     | BuyTokens Integer            -- buy CT Tokens
@@ -35,4 +35,17 @@ lovelaces = Ada.getLovelace _ Ada.fromValue
 
 {-# INLINABLE transition #-}
 transition :: CarterToken -> State Integer -> CTRedeemer -> Maybe (TxConstraints Void Void, State Integer)
-transition ct s r = case (StateValue s, stateData, r) of]
+transition ct s r = case (StateValue s, stateData, r) of
+    (v, _, SetPrice)     | p >= 0               -> Just ( Constraints.mustBeSignedBy (ctSeller ct)
+                                                         , State p $
+                                                           v <>
+                                                           nft (negate 1)
+                                                           )
+    (v, p, BuyTokens n) | n > 0 -> ( mempty
+                                   , State p $
+                                     v                                       <>
+                                     nft(negate 1)                           <>
+                                     assetClassValue (ctToken ct) (negate n) <>
+                                     lovelaceValueOf (n * p)
+                                    )
+  
