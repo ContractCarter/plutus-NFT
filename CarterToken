@@ -56,3 +56,18 @@ transition ct s r = case (StateValue s, stateData, r) of
                                                     )
      _                                      -> Nothing
     where
+
+ --| helper function to reference NFT
+    -- reference smart contract 
+      nft :: Integer -> Value
+      nft = assetClassValue (ctNFT ct)
+      
+--| Boiler plate code to compile   
+   type CT = StateMachine Integer CTRedeemer
+
+ctInst :: CarterToken -> Scripts.ScriptInstance CT
+ctInst ts = Scripts.validator @TS
+    ($$(PlutusTx.compile [|| mkCTValidator ||]) `PlutusTx.applyCode` PlutusTx.liftCode ct)
+    $$(PlutusTx.compile [|| wrap ||])
+  where
+    wrap = Scripts.wrapValidator @Integer @CTRedeemer
