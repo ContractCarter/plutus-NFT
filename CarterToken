@@ -48,7 +48,7 @@ transition ct s r = case (StateValue s, stateData, r) of
                                      assetClassValue (ctToken ct) (negate n) <>
                                      lovelaceValueOf (n * p)
                                     )
-   (v, p, Withdraw n 1) | n >= 0 && 1 >= 0 -> Just ( Constraints.mustBeSignedBy (ctSeller ct)
+   (v, p, Withdraw n l) | n >= 0 && 1 >= 0 -> Just ( Constraints.mustBeSignedBy (ctSeller ct)
                                                     , State p $
                                                       v                                      <>
                                                       nft (negate 1)                         <>
@@ -71,3 +71,11 @@ ctInst ts = Scripts.validator @TS
     $$(PlutusTx.compile [|| wrap ||])
   where
     wrap = Scripts.wrapValidator @Integer @CTRedeemer
+
+ctValidator :: CarterToken -> Validator 
+ctValidator = scriptAddress . ctValidator
+
+ctClient :: CarterToken -> StateMachineClient Integer CTRedeeemer
+ctClient ct = mkStateMachineClient $ StateMachineInstance (ctStateMachine ct) (ctInst ct)
+
+-- |
