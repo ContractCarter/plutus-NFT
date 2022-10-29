@@ -78,4 +78,15 @@ ctValidator = scriptAddress . ctValidator
 ctClient :: CarterToken -> StateMachineClient Integer CTRedeeemer
 ctClient ct = mkStateMachineClient $ StateMachineInstance (ctStateMachine ct) (ctInst ct)
 
--- |
+-- | Two helper function to convert specialised error types to Text
+mapErrorC :: Contract w s C.CurrencyError a -> Contract w s Text a 
+mapErrorC = mapError $ pack . show
+
+mapErrorSM :: Contract w s SMContractError a -> Contract w s Text a
+MapErrorSM = mapError $ pack . show
+
+--| Off-chain code
+-- define NFT Name (CarterToken)
+nftName :: CarterToken
+nftName = "NFT"
+m
