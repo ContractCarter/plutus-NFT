@@ -63,20 +63,20 @@ transition ts s r = case (StateValue s, stateData, r) of
       nft = assetClassValue (tsNFT ts)
       
 --| Boiler plate code to compile   
-   type CT = StateMachine Integer CTRedeemer
+   type TS = StateMachine Integer TSRedeemer
 
-ctInst :: CarterToken -> Scripts.ScriptInstance CT
-ctInst ts = Scripts.validator @TS
-    ($$(PlutusTx.compile [|| mkCTValidator ||]) `PlutusTx.applyCode` PlutusTx.liftCode ct)
+tsInst :: TokenSale -> Scripts.ScriptInstance TS
+tsInst ts = Scripts.validator @TS
+    ($$(PlutusTx.compile [|| mkTSValidator ||]) `PlutusTx.applyCode` PlutusTx.liftCode ts)
     $$(PlutusTx.compile [|| wrap ||])
   where
-    wrap = Scripts.wrapValidator @Integer @CTRedeemer
+    wrap = Scripts.wrapValidator @Integer @TSRedeemer
 
-stValidator :: TokenSale -> Validator 
-stValidator = scriptAddress . stValidator
+tsValidator :: TokenSale -> Validator 
+tsValidator = scriptAddress . tsValidator
 
-stClient :: TokenSale -> StateMachineClient Integer STRedeeemer
-stClient st = mkStateMachineClient $ StateMachineInstance (stStateMachine st) (stInst st)
+tsClient :: TokenSale -> StateMachineClient Integer TSRedeeemer
+tsClient ts = mkStateMachineClient $ StateMachineInstance (stStateMachine ts) (tsInst ts)
 
 -- | Two helper function to convert specialised error types to Text
 mapErrorC :: Contract w s C.CurrencyError a -> Contract w s Text a 
@@ -90,5 +90,21 @@ MapErrorSM = mapError $ pack . show
 nftName :: CarterToken
 nftName = "NFT"
 
---| 1st contract is starting Cater
--- if No
+--| 1st contract is starting token sale
+-- contract invoked by Seller's pub key hash
+-- if Nothing mint nft with 1st argument (Maybe CurrencySymbol)
+-- AssetClass token seller wants to trade
+-- return type using writer monad type Last (once TokenSale is setup other contracts discover it)
+startTs :: HasBlockchainActions s => Maybe CurrencySymbol -> AssetClass -> Contract (Last TokenSale) s Text TokenSale 
+startTs mcs token = do
+    pkh <- pubKeyHash <$> Contract.ownPubKey
+    cs  <- case mcs of
+        Nothing  -> C.currencySymbol <$> mapErrorC (C.forgeContract pkh [(nftName, 1)])
+        Just cs' -> return cs'
+--| define TokenSale create state machine client        
+    let ts = TokenSale 
+            {  tsSeller = pkh
+            ,  tsToken  = token
+            ,  tsNFT    = AssetClass (cs, nftName)
+            }
+         client = tsClient ts
