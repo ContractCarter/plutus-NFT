@@ -108,3 +108,8 @@ startTs mcs token = do
             ,  tsNFT    = AssetClass (cs, nftName)
             }
          client = tsClient ts
+            void $ mappErrorSM $ runInitialise client 0 mempty
+          tell $ Last $ Just ts
+          logInfo $ "start token sale" ++ show ts
+          return ts
+
