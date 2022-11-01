@@ -113,3 +113,9 @@ startTs mcs token = do
           logInfo $ "start token sale" ++ show ts
           return ts
 
+--| functions for the other 3 operations
+-- add TokenSale argument to identify contract + new values  
+-- use runstep using client and redeemers wrap with mapErrorSM to convert Text error messages 
+-- ignore result
+  setPrice :: HasBlockchainActions s => TokenSale -> Integer -> Contract w s Text ()
+  setPrice ts p = void $ mapErrorSM $ runStep (tsClient ts) $ SetPrice p
