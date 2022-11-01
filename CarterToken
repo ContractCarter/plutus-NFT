@@ -119,3 +119,9 @@ startTs mcs token = do
 -- ignore result
   setPrice :: HasBlockchainActions s => TokenSale -> Integer -> Contract w s Text ()
   setPrice ts p = void $ mapErrorSM $ runStep (tsClient ts) $ SetPrice p
+
+  buyTokens :: HasBlockchainActions s => TokenSale -> Integer -> Contract w s Text ()
+  buyTokens ts n = void $ mapErrorSM $ runStep (tsClient ts) $ BuyTokens n
+  
+  withdraw :: HasBlockchainActions s => TokenSale -> Integer -> Integer -> Contract w s Text ()
+  withdraw ts n 1 = void $ mapErrorSM $ runStep (tsClient ts) $ Withdraw n 1
