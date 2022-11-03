@@ -125,3 +125,13 @@ startTs mcs token = do
   
   withdraw :: HasBlockchainActions s => CarterToken -> Integer -> Integer -> Contract w s Text ()
   withdraw ct n 1 = void $ mapErrorSM $ runStep (ctClient ct) $ Withdraw n 1
+  
+  type TSStartSchema = BlockchainActions
+      .\/ Endpoint "start"       (CurrencySymbol, CarterToken)
+  type TSStartSchema' = BlockchainActions
+      .\/ Endpoint "start"       (CurrencySymbol, CurrencySymbol, CarterToken)
+  type TSUseSchema = BlockchainActions
+      .\/ Endpoint "set price" Integer
+      .\/ Endpoint "buy tokens" Integer
+      .\/ Endpoint "withdraw" (Integer, Integer)
+      
