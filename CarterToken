@@ -24,7 +24,7 @@ data CTRedeemer =
     | Withdraw Integer Integer     -- Withdraw CT + lovelaces
     deriving (Show, Prelude.Eq)
 
-PlutusTx.unstableMakeIsData " "TSRedeemer 
+PlutusTx.unstableMakeIsData " "CTRedeemer 
 
 --| lovelace helper function
 {-# INLINABLE lovelaces #-}
@@ -96,12 +96,12 @@ nftName = "NFT"
 -- AssetClass token seller wants to trade
 -- return type using writer monad type Last (once CarterToken is setup other contracts discover it)
 startCT :: HasBlockchainActions s => Maybe CurrencySymbol -> AssetClass -> Contract (Last CarterToken) s Text CarterToken 
-startTs mcs token = do
+startCT mcs token = do
     pkh <- pubKeyHash <$> Contract.ownPubKey
     cs  <- case mcs of
         Nothing  -> C.currencySymbol <$> mapErrorC (C.forgeContract pkh [(nftName, 1)])
         Just cs' -> return cs'
---| define TokenSale create state machine client        
+--| define CarterToken create state machine client        
     let ct = CarterToken 
             {  ctSeller = pkh
             ,  ctToken  = token
