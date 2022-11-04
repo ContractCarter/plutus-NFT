@@ -126,12 +126,24 @@ startTs mcs token = do
   withdraw :: HasBlockchainActions s => CarterToken -> Integer -> Integer -> Contract w s Text ()
   withdraw ct n 1 = void $ mapErrorSM $ runStep (ctClient ct) $ Withdraw n 1
   
-  type TSStartSchema = BlockchainActions
+  type CTStartSchema = BlockchainActions
       .\/ Endpoint "start"       (CurrencySymbol, CarterToken)
-  type TSStartSchema' = BlockchainActions
+  type CTStartSchema' = BlockchainActions
       .\/ Endpoint "start"       (CurrencySymbol, CurrencySymbol, CarterToken)
-  type TSUseSchema = BlockchainActions
+  type CTUseSchema = BlockchainActions
       .\/ Endpoint "set price" Integer
       .\/ Endpoint "buy tokens" Integer
       .\/ Endpoint "withdraw" (Integer, Integer)
       
+
+ --| Start endpoint calls startTS with Nothing (has to be minted), wrap in handleError (log Error)    
+  startEndpoint :: Contract (Last CarterToken) CTStartSchema Text ()
+  startEndpoint = startCT' >> startEndpoint
+    where
+     startCT' = handleError logError $ endpoint @"start" >>= void . startCT Nothing . AssetClass
+ 
+ --| startEndpoint function add NFT parameter, as per TSStartSchema 
+  startEndpoint' :: Contract ( Last CarterToken) CTStartSchema' Text ()
+  startEndpoint' = startCT' >> startEndpoint'
+    where
+       startCT' = handleError logError $ endpoint @"start" >>= \(cs1, cs2, tn) -> void $ startTS (Just cs1) $ AssetClass (cs2, tn)
