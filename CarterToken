@@ -11,17 +11,18 @@ contract wsea
 endpoints
 
 --| Tokenize CarterToken allow anyone swap for its value
-data CarterToken = CarterToken 
-{ ctSeller :: !PubKeyHash
-, ctToken :: !AssetClass
-, ctNFT   :: !AssetClass
+data CarterSale = CarterSale
+{ csSeller :: !PubKeyHash
+, csToken :: !AssetClass
+, csNFT   :: !AssetClass
 } deriving (Show, Generic, FromJSON, ToJSON, Prelude.Eq, Prelude.Ord)
 
 
-data CTRedeemer = 
-      SetPrice Integer             -- price CT
-    | BuyTokens Integer            -- buy CT Tokens
-    | Withdraw Integer Integer     -- Withdraw CT + lovelaces
+data CSRedeemer = 
+      SetPrice Integer             -- price CS
+    | AddTokens Integer            -- Add more CS Tokens  
+    | BuyTokens Integer            -- buy CS Tokens
+    | Withdraw Integer Integer     -- Withdraw CS + lovelaces
     deriving (Show, Prelude.Eq)
 
 PlutusTx.unstableMakeIsData " "CTRedeemer 
@@ -34,21 +35,29 @@ lovelaces = Ada.getLovelace _ Ada.fromValue
 --| Script Addresss
 
 {-# INLINABLE transition #-}
-transition :: CarterToken -> State Integer -> CTRedeemer -> Maybe (TxConstraints Void Void, State Integer)
-transition ct s r = case (StateValue s, stateData, r) of
-    (v, _, SetPrice)     | p >= 0               -> Just ( Constraints.mustBeSignedBy (ctSeller ct)
+transition :: CarterSale -> State Integer -> CSRedeemer -> Maybe (TxConstraints Void Void, State Integer)
+transition cs s r = case (StateValue s, stateData, r) of
+    (v, _, SetPrice)     | p >= 0               -> Just ( Constraints.mustBeSignedBy (csSeller cs)
                                                          , State p $
                                                            v <>
                                                            nft (negate 1)
                                                            )
+                                                           
+    (v, p, AddTokens n) | n > 0                 -> Just( Constraints.mustBeSignedBy (csSeller cs)           
+                                                         , State p $ v <>
+                                                           nft (negate 1) <>
+                                                           assetClassValue (csToken cs) n
+                                                        )
+    
+    
     (v, p, BuyTokens n) | n > 0 -> ( mempty
                                    , State p $
                                      v                                       <>
                                      nft(negate 1)                           <>
-                                     assetClassValue (ctToken ct) (negate n) <>
+                                     assetClassValue (csToken cs) (negate n) <>
                                      lovelaceValueOf (n * p)
                                     )
-   (v, p, Withdraw n l) | n >= 0 && 1 >= 0 -> Just ( Constraints.mustBeSignedBy (ctSeller ct)
+   (v, p, Withdraw n l) | n >= 0 && 1 >= 0 -> Just ( Constraints.mustBeSignedBy (csSeller cs)
                                                     , State p $
                                                       v                                      <>
                                                       nft (negate 1)                         <>
@@ -60,23 +69,23 @@ transition ct s r = case (StateValue s, stateData, r) of
  --| helper function to reference NFT
     -- reference smart contract 
       nft :: Integer -> Value
-      nft = assetClassValue (ctNFT ct)
+      nft = assetClassValue (ctNFT cs)
       
 --| Boiler plate code to compile   
-   type CT = StateMachine Integer CTRedeemer
+   type CS = StateMachine Integer CSRedeemer
 
-ctInst :: CarterToken -> Scripts.ScriptInstance CT
-ctInst ct = Scripts.validator @CT
-    ($$(PlutusTx.compile [|| mkCTValidator ||]) `PlutusTx.applyCode` PlutusTx.liftCode ct)
+csInst :: CarterSale -> Scripts.ScriptInstance CS
+csInst cs = Scripts.validator @CS
+    ($$(PlutusTx.compile [|| mkCSValidator ||]) `PlutusTx.applyCode` PlutusTx.liftCode cs)
     $$(PlutusTx.compile [|| wrap ||])
   where
-    wrap = Scripts.wrapValidator @Integer @CTRedeemer
+    wrap = Scripts.wrapValidator @Integer @CSRedeemer
 
-ctValidator :: CarterToken -> Validator 
-ctValidator = scriptAddress . ctValidator
+csValidator :: CarterSale -> Validator 
+csValidator = scriptAddress . csValidator
 
-ctClient :: CarterToken -> StateMachineClient Integer CTRedeeemer
-ctClient ct = mkStateMachineClient $ StateMachineInstance ctStateMachine ct) (ctInst ct)
+csClient :: CarterSale -> StateMachineClient Integer CSRedeeemer
+csClient cs = mkStateMachineClient $ StateMachineInstance csStateMachine cs) (csInst cs)
 
 -- | Two helper function to convert specialised error types to Text
 mapErrorC :: Contract w s C.CurrencyError a -> Contract w s Text a 
@@ -95,55 +104,59 @@ nftName = "NFT"
 -- if Nothing mint nft with 1st argument (Maybe CurrencySymbol)
 -- AssetClass token seller wants to trade
 -- return type using writer monad type Last (once CarterToken is setup other contracts discover it)
-startCT :: HasBlockchainActions s => Maybe CurrencySymbol -> AssetClass -> Contract (Last CarterToken) s Text CarterToken 
-startCT mcs token = do
+startCS :: HasBlockchainActions s => Maybe CurrencySymbol -> AssetClass -> Contract (Last CarterSale) s Text CarterSale 
+startCS mcs token = do
     pkh <- pubKeyHash <$> Contract.ownPubKey
     cs  <- case mcs of
         Nothing  -> C.currencySymbol <$> mapErrorC (C.forgeContract pkh [(nftName, 1)])
-        Just cs' -> return cs'
+        Just cy' -> return cy'
 --| define CarterToken create state machine client        
-    let ct = CarterToken 
-            {  ctSeller = pkh
-            ,  ctToken  = token
-            ,  ctNFT    = AssetClass (cs, nftName)
+    let cs = CarterSale 
+            {  csSeller = pkh
+            ,  csToken  = token
+            ,  csNFT    = AssetClass (cy, nftName)
             }
-         client = ctClient ct
-            void $ mappErrorSM $ runInitialise client 0 mempty
-          tell $ Last $ Just ts
-          logInfo $ "start Carter Token sale" ++ show ct
-          return ct
+         client = csClient cs
+          void $ mappErrorSM $ runInitialise client 0 mempty
+          tell $ Last $ Just cs
+          logInfo $ "start Carter Token sale" ++ show cs
+          return cs
 
 --| functions for the other 3 operations
 -- add TokenSale argument to identify contract + new values  
 -- use runstep using client and redeemers wrap with mapErrorSM to convert Text error messages 
 -- ignore result
-  setPrice :: HasBlockchainActions s => CarterToken -> Integer -> Contract w s Text ()
-  setPrice ct p = void $ mapErrorSM $ runStep (ctClient ct) $ SetPrice p
+  setPrice :: HasBlockchainActions s => CarterSale -> Integer -> Contract w s Text ()
+  setPrice cs p = void $ mapErrorSM $ runStep (csClient cs) $ SetPrice p
+  
+  addTokens :: HasBlockchainActions s => CarterSale -> Integer -> Contract w s Text ()
+  addTokens cs n = void $ mapErrorSM $ runStep (csClient cs) $ AddToken n)
 
-  buyTokens :: HasBlockchainActions s => CarterToken -> Integer -> Contract w s Text ()
-  buyTokens ct n = void $ mapErrorSM $ runStep (ctClient ct) $ BuyTokens n
+  buyTokens :: HasBlockchainActions s => CarterSale -> Integer -> Contract w s Text ()
+  buyTokens cs n = void $ mapErrorSM $ runStep (csClient cs) $ BuyTokens n
   
-  withdraw :: HasBlockchainActions s => CarterToken -> Integer -> Integer -> Contract w s Text ()
-  withdraw ct n 1 = void $ mapErrorSM $ runStep (ctClient ct) $ Withdraw n 1
+  withdraw :: HasBlockchainActions s => CarterSale -> Integer -> Integer -> Contract w s Text ()
+  withdraw cs n 1 = void $ mapErrorSM $ runStep (csClient cs) $ Withdraw n 1
   
-  type CTStartSchema = BlockchainActions
+  type CSStartSchema = BlockchainActions
       .\/ Endpoint "start"       (CurrencySymbol, CarterToken)
-  type CTStartSchema' = BlockchainActions
+  type CSStartSchema' = BlockchainActions
       .\/ Endpoint "start"       (CurrencySymbol, CurrencySymbol, CarterToken)
-  type CTUseSchema = BlockchainActions
+  type CSUseSchema = BlockchainActions
       .\/ Endpoint "set price" Integer
+      .\/ Endpoint "add tokens" Integer
       .\/ Endpoint "buy tokens" Integer
       .\/ Endpoint "withdraw" (Integer, Integer)
       
 
  --| Start endpoint calls startTS with Nothing (has to be minted), wrap in handleError (log Error)    
-  startEndpoint :: Contract (Last CarterToken) CTStartSchema Text ()
-  startEndpoint = startCT' >> startEndpoint
+  startEndpoint :: Contract (Last CarterSale) CSStartSchema Text ()
+  startEndpoint = startCS' >> startEndpoint
     where
-     startCT' = handleError logError $ endpoint @"start" >>= void . startCT Nothing . AssetClass
+     startCS' = handleError logError $ endpoint @"start" >>= void . startCS Nothing . AssetClass
  
  --| startEndpoint function add NFT parameter, as per TSStartSchema 
-  startEndpoint' :: Contract ( Last CarterToken) CTStartSchema' Text ()
-  startEndpoint' = startCT' >> startEndpoint'
+  startEndpoint' :: Contract ( Last CarterSale) CSStartSchema' Text ()
+  startEndpoint' = startCS' >> startEndpoint'
     where
-       startCT' = handleError logError $ endpoint @"start" >>= \(cs1, cs2, tn) -> void $ startTS (Just cs1) $ AssetClass (cs2, tn)
+       startCS' = handleError logError $ endpoint @"start" >>= \(cy1, cy2, tn) -> void $ startCS (Just cy1) $ AssetClass (cy2, tn)
