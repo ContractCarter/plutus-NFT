@@ -11,7 +11,7 @@ contract wsea
 endpoints
 
 --| Tokenize CarterToken allow anyone swap for its value
-data CarterToken = TokenSale 
+data CarterToken = CarterToken 
 { ctSeller :: !PubKeyHash
 , ctToken :: !AssetClass
 , ctNFT   :: !AssetClass
