@@ -160,3 +160,13 @@ startCS mcs token = do
   startEndpoint' = startCS' >> startEndpoint'
     where
        startCS' = handleError logError $ endpoint @"start" >>= \(cy1, cy2, tn) -> void $ startCS (Just cy1) $ AssetClass (cy2, tn)
+       
+  --|Give a choice between the 4 endpoints, call function defined earlier with arguments fed in endpoint call
+ -- everything wrapped inside an error handler so contract can't crash
+ useEndpoints :: TokenSale -> Contract () TSUseSchema Text ()
+ useEndpoints ts = (setPrice' 'select' addTokens' 'select' buyTokens' 'select' withdraw') >> useEndpoints ts
+   where
+     setPrice'  = handleError  logError $ endpoint @"set price"  >>= setPrice cs
+     addTokens' = handleError  logError $ endpoint @"add tokens" >>= addTokens cs
+     buyTokens' = handleError  logError $ endpoint @"buy tokens" >>= buyTokens cs
+     withdraw'  = handdleError logError $ endpoint @"withdraw"   >>= uncurry (withdraw cs)     
