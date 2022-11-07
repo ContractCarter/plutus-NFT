@@ -163,8 +163,8 @@ startCS mcs token = do
        
   --|Give a choice between the 4 endpoints, call function defined earlier with arguments fed in endpoint call
  -- everything wrapped inside an error handler so contract can't crash
- useEndpoints :: TokenSale -> Contract () TSUseSchema Text ()
- useEndpoints ts = (setPrice' 'select' addTokens' 'select' buyTokens' 'select' withdraw') >> useEndpoints ts
+ useEndpoints :: CarterSale -> Contract () CSUseSchema Text ()
+ useEndpoints cs = (setPrice' 'select' addTokens' 'select' buyTokens' 'select' withdraw') >> useEndpoints cs
    where
      setPrice'  = handleError  logError $ endpoint @"set price"  >>= setPrice cs
      addTokens' = handleError  logError $ endpoint @"add tokens" >>= addTokens cs
