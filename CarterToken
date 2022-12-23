@@ -11,6 +11,7 @@ contract wsea
 endpoints
 
 --| Tokenize CarterToken allow anyone swap for its value
+-- csNFT arbituarty NFT to identify utxo
 data CarterSale = CarterSale
 { csSeller :: !PubKeyHash
 , csToken :: !AssetClass
@@ -69,7 +70,7 @@ transition cs s r = case (StateValue s, stateData, r) of
  --| helper function to reference NFT
     -- reference smart contract 
       nft :: Integer -> Value
-      nft = assetClassValue (ctNFT cs)
+      nft = assetClassValue (csNFT cs)
       
 --| Boiler plate code to compile   
    type CS = StateMachine Integer CSRedeemer
