@@ -82,7 +82,7 @@ csInst cs = Scripts.validator @CS
 csValidator :: CarterSale -> Validator 
 csValidator = scriptAddress . csInst
 
-csClient :: CarterSale -> StateMachineClient Integer CSRedeeemer
+csClient :: CarterSale -> StateMachineClient Integer CSRedeemer
 csClient cs = mkStateMachineClient $ StateMachineInstance csStateMachine cs) (csInst cs)
 
 -- | Two helper function to convert specialised error types to Text
