@@ -26,7 +26,7 @@ data CSRedeemer =
     | Withdraw Integer Integer     -- Withdraw CS + lovelaces
     deriving (Show, Prelude.Eq)
 
-unstx.unstableMakeIsData "CTRedeemer" 
+unstx.unstableMakeIsData "CSRedeemer" 
 
 --| lovelace helper function
 {-# INLINABLE lovelaces #-}
@@ -62,13 +62,10 @@ transition cs s r = case (StateValue s, stateData, r) of
                                                     , State p $
                                                       v                                      <>
                                                       nft (negate 1)                         <>
-                                                      assetClassValueOf (negate 1)
+                                                      assetClassValue (negate 1)
                                                     )
      _                                      -> Nothing
     where
-
- --| helper function to reference NFT
-    -- reference smart contract 
       nft :: Integer -> Value
       nft = assetClassValue (csNFT cs)
       
@@ -83,7 +80,7 @@ csInst cs = Scripts.validator @CS
     wrap = Scripts.wrapValidator @Integer @CSRedeemer
 
 csValidator :: CarterSale -> Validator 
-csValidator = scriptAddress . csValidator
+csValidator = scriptAddress . csInst
 
 csClient :: CarterSale -> StateMachineClient Integer CSRedeeemer
 csClient cs = mkStateMachineClient $ StateMachineInstance csStateMachine cs) (csInst cs)
@@ -105,8 +102,8 @@ nftName = "NFT"
 -- if Nothing mint nft with 1st argument (Maybe CurrencySymbol)
 -- AssetClass token seller wants to trade
 -- return type using writer monad type Last (once CarterToken is setup other contracts discover it)
-startCS :: HasBlockchainActions s => Maybe CurrencySymbol -> AssetClass -> Contract (Last CarterSale) s Text CarterSale 
-startCS mcs token = do
+startCT :: HasBlockchainActions s => Maybe CurrencySymbol -> AssetClass -> Contract (Last CarterSale) s Text CarterSale 
+startCT mcs token = do
     pkh <- pubKeyHash <$> Contract.ownPubKey
     cs  <- case mcs of
         Nothing  -> C.currencySymbol <$> mapErrorC (C.forgeContract pkh [(nftName, 1)])
