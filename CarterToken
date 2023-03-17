@@ -102,8 +102,8 @@ nftName = "NFT"
 -- if Nothing mint nft with 1st argument (Maybe CurrencySymbol)
 -- AssetClass token seller wants to trade
 -- return type using writer monad type Last (once CarterToken is setup other contracts discover it)
-startCT :: HasBlockchainActions s => Maybe CurrencySymbol -> AssetClass -> Contract (Last CarterSale) s Text CarterSale 
-startCT mcs token = do
+startCS :: HasBlockchainActions s => Maybe CurrencySymbol -> AssetClass -> Contract (Last CarterSale) s Text CarterSale 
+startCS mcs token = do
     pkh <- pubKeyHash <$> Contract.ownPubKey
     cs  <- case mcs of
         Nothing  -> C.currencySymbol <$> mapErrorC (C.forgeContract pkh [(nftName, 1)])
