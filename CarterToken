@@ -58,7 +58,7 @@ transition cs s r = case (StateValue s, stateData, r) of
                                      assetClassValue (csToken cs) (negate n) <>
                                      lovelaceValueOf (n * p)
                                     )
-   (v, p, Withdraw n l) | n >= 0 && 1 >= 0 -> Just ( Constraints.mustBeSignedBy (csSeller cs)
+   (v, p, Withdraw n l) | n >= 0 && l >= 0 -> Just ( Constraints.mustBeSignedBy (csSeller cs)
                                                     , State p $
                                                       v                                      <>
                                                       nft (negate 1)                         <>
@@ -90,7 +90,7 @@ mapErrorC :: Contract w s C.CurrencyError a -> Contract w s Text a
 mapErrorC = mapError $ pack . show
 
 mapErrorSM :: Contract w s SMContractError a -> Contract w s Text a
-MapErrorSM = mapError $ pack . show
+mapErrorSM = mapError $ pack . show
 
 --| Off-chain code
 -- define NFT Name (CarterToken)
@@ -115,7 +115,7 @@ startCS mcs token = do
             ,  csNFT    = AssetClass (cy, nftName)
             }
          client = csClient cs
-          void $ mappErrorSM $ runInitialise client 0 mempty
+          void $ mapErrorSM $ runInitialise client 0 mempty
           tell $ Last $ Just cs
           logInfo $ "start Carter Token sale" ++ show cs
           return cs
@@ -134,7 +134,7 @@ startCS mcs token = do
   buyTokens cs n = void $ mapErrorSM $ runStep (csClient cs) $ BuyTokens n
   
   withdraw :: HasBlockchainActions s => CarterSale -> Integer -> Integer -> Contract w s Text ()
-  withdraw cs n 1 = void $ mapErrorSM $ runStep (csClient cs) $ Withdraw n 1
+  withdraw cs n l = void $ mapErrorSM $ runStep (csClient cs) $ Withdraw n l
   
   type CSStartSchema = BlockchainActions
       .\/ Endpoint "start"       (CurrencySymbol, CarterToken)
